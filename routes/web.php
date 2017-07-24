@@ -11,6 +11,14 @@
 |
 */
 
+
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Landing View
+Route::get('paywithpaypal', array('as' => 'paywithpaypal','uses' => 'PaypalController@payWithPaypal',));
+// PayPal Post Request
+Route::post('paypal', array('as' => 'paypal','uses' => 'PaypalController@postPaymentWithpaypal',));
+// PayPal Check Status
+Route::get('paypal', array('as' => 'status','uses' => 'PaypalController@getPaymentStatus',));
