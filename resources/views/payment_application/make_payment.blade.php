@@ -124,7 +124,7 @@
                                     <button type="submit" class="btn btn-primary">
                                         Pay with Paypal
                                     </button>
-                                    <button type="submit" class="btn btn-primary">
+                                    <button type="submit" class="btn btn-primary disabled">
                                         Pay with Braintree
                                     </button>
                                 </div>
