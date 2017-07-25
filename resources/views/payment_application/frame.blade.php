@@ -5,8 +5,8 @@
             <nav class="navbar navbar-default navbar-fixed-top">
                 <div class="container">
                     <ul class="nav navbar-nav">
-                        <li><a href="/payment_application/make_payment">Send Payment</a></li>
-                        <li><a href="#">Check Status</a></li>
+                        <li><a href="{!! URL::route('paywithpaypal') !!}">Send Payment</a></li>
+                        <li><a href="{!! URL::route('checkPayment') !!}">Check Status</a></li>
                 </div>
             </nav>
 
