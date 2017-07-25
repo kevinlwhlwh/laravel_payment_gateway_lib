@@ -81,6 +81,16 @@ class PayPalController extends Controller
             'customerPhone' => 'required|string',
         ]);
 
+        if($request->currency !== 'USD' && $request->cardType === 'AMEX'){
+            Session::put('error','American Express only accept USD as currency');
+            return Redirect::route('paywithpaypal');
+        }
+
+        if(!in_array($request->currency,['USD','EUR','AUD'])){
+            Session::put('error','Please use Braintree for non USD/EUR/AUD currency payment');
+            return Redirect::route('paywithpaypal');
+        }
+
         $card = new PaymentCard();
         $card->setType($request->cardType)
             ->setNumber($request->cardNumber)
@@ -138,10 +148,6 @@ class PayPalController extends Controller
 
         try {
             $payment->create($this->_api_context);
-//            echo "<pre>";
-//            printf($payment);
-//            echo "</pre>";
-//            exit(1);
         } catch (PayPalConnectionException $ex) {
 
             if (config('app.debug')) {
