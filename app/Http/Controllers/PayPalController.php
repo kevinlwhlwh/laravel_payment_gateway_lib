@@ -67,7 +67,19 @@ class PayPalController extends Controller
     public function postPaymentWithpaypal(Request $request)
     {
 
-
+        $this->validate($request, [
+            'cardType' => 'required|max:255',
+            'cardNumber' => 'required|alpha_num',
+            'expireMonth' => 'required|alpha_num',
+            'expireYear' => 'required|alpha_num|after:last year',
+            'cardCvv2' => 'required|alpha_num|min:3|max:4',
+            'firstName' => 'required|string',
+            'lastName' => 'required|string',
+            'currency' => 'required|string|min:3|max:3',
+            'amount' => 'required|alpha_num',
+            'customerName' => 'required|string',
+            'customerPhone' => 'required|string',
+        ]);
 
         $card = new PaymentCard();
         $card->setType($request->cardType)
@@ -120,7 +132,7 @@ class PayPalController extends Controller
             ->setPayer($payer)
             ->setTransactions(array($transaction));
 
-        $request = clone $payment;
+//        $request = clone $payment;
 
 
 
@@ -159,6 +171,12 @@ class PayPalController extends Controller
 
         if($payment->getState() == 'approved'){
             Session::put('paypal_payment_id', $payment->getId());
+            Session::put($payment->getId(),collect([
+                'customer_name' => $request->customerName,
+                'customer_Phone' => $request->customerPhone,
+                'currency' => $request->currency,
+                'amount' => $request->amount,
+            ]));
             return Redirect::route('paywithpaypal')->with(['success' => 'Payment success! Reference ID:'.$payment->getId()]);
         }
 
@@ -168,35 +186,73 @@ class PayPalController extends Controller
 
     public function getPaymentStatus()
     {
-        /** Get the payment ID before session clear **/
         $payment_id = Session::get('paypal_payment_id');
-        /** clear the session payment ID **/
+
         Session::forget('paypal_payment_id');
         if (empty(Input::get('PayerID')) || empty(Input::get('token'))) {
             Session::put('error','Payment failed');
             return Redirect::route('paywithpaypal');
         }
         $payment = Payment::get($payment_id, $this->_api_context);
-        /** PaymentExecution object includes information necessary **/
-        /** to execute a PayPal account payment. **/
-        /** The payer_id is added to the request query parameters **/
-        /** when the user is redirected from paypal back to your site **/
+
         $execution = new PaymentExecution();
         $execution->setPayerId(Input::get('PayerID'));
-        /**Execute the payment **/
         $result = $payment->execute($execution, $this->_api_context);
-        /** dd($result);exit; /** DEBUG RESULT, remove it later **/
+
         if ($result->getState() == 'approved') {
-
-            /** it's all right **/
-            /** Here Write your database logic like that insert record or value in database if you want **/
-
             Session::put('success','Payment success');
             return Redirect::route('paywithpaypal');
         }
+
         Session::put('error','Payment failed');
 
         return Redirect::route('paywithpaypal');
     }
 
+    public function checkPaymentRecord(){
+        return view('payment_application/check_payment');
+    }
+
+    public function getPaymentRecord(Request $request){
+
+
+        try {
+            $payment = Payment::get($request->refNumber, $this->_api_context);
+
+        } catch (PayPalConfigurationException $ex) {
+
+//            Session::put('error','PayPalConfigurationException');
+            Session::put('error', 'Payment ID: ['.$request->refNumber.'] record not found');
+            return Redirect::route('checkPayment');
+
+        } catch (PayPalMissingCredentialException $ex ) {
+
+//            Session::put('error','PayPalMissingCredentialException');
+            Session::put('error', 'Payment ID: ['.$request->refNumber.'] record not found');
+
+            return Redirect::route('checkPayment');
+
+        } catch (PayPalInvalidCredentialException $ex) {
+
+//            Session::put('error','PayPalInvalidCredentialException');
+            Session::put('error', 'Payment ID: ['.$request->refNumber.'] record not found');
+            return Redirect::route('checkPayment');
+
+        }catch (PayPalConnectionException $ex) {
+
+//            Session::put('error','PayPalConnectionException');
+            Session::put('error', 'Payment ID: ['.$request->refNumber.'] record not found');
+            return Redirect::route('checkPayment');
+
+        }
+
+        if($payment->getState() == 'approved'){
+            return Redirect::route('checkPayment')->with(['success' => 'Payment approved!', 'payment_details' => session($payment->getId())->all()]);;
+        }else{
+            Session::put('error', 'Payment ID: ['.$request->refNumber.'] record not found');
+            return Redirect::route('checkPayment');
+        }
+
+
+    }
 }
